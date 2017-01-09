@@ -1,0 +1,8 @@
+.DS_Store
+build*
+spMVgen
+*.o
+*~
+matrices
+data
+tools/matrixNames.txt
