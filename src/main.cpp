@@ -18,7 +18,26 @@ void spMV_CSR(double *vals, int *cols, int *rows, int N, double *v, double *w) {
   }
 }
 
-// Caller of this method is responsible for destructing the 
+// Unrolling inner loop for 4 times
+void spMV_CSR4(double *vals, int *cols, int *rows, int N, double *v, double *w) {
+  for (int i = 0; i < N; i++) {
+    double sum = 0.0;
+    int k;
+    for (k = rows[i]; k < rows[i+1]-4; k+=4) {
+      sum += vals[k] * v[cols[k]];
+      sum += vals[k+1] * v[cols[k+1]];
+      sum += vals[k+2] * v[cols[k+2]];
+      sum += vals[k+3] * v[cols[k+3]];
+    }
+    // Left-over elements
+    for (; k < rows[i+1]; k++) {
+      sum += vals[k] * v[cols[k]];
+    }
+    w[i] += sum;
+  }
+}
+
+// Caller of this method is responsible for destructing the
 // returned matrix. 
 Matrix* readMatrixFromFile(string fileName) {
   ifstream mmFile(fileName.c_str());
@@ -108,7 +127,7 @@ int main(int argc, const char *argv[]) {
 
   auto startTime = std::chrono::high_resolution_clock::now();
   for (int i=0; i < ITERS; i++) {
-    spMV_CSR(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+    spMV_CSR4(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
   }
   auto endTime = std::chrono::high_resolution_clock::now();
 
@@ -119,9 +138,10 @@ int main(int argc, const char *argv[]) {
 
     
   // For debugging purposes:
-  // for(int i = 0; i < N; ++i) w[i] = 0;
-  // for(int i = 0; i < n; ++i) printf("%g\n", w[i]);
-
+  //for(int i = 0; i < N; ++i) w[i] = 0;
+  //spMV_CSR4(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+  //for(int i = 0; i < N; ++i) printf("%g\n", w[i]);
+  
   return 0;
 }
 
