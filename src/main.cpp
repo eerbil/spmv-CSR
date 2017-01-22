@@ -37,6 +37,101 @@ void spMV_CSR4(double *vals, int *cols, int *rows, int N, double *v, double *w) 
   }
 }
 
+// Unrolling inner loop for 5 times
+void spMV_CSR5(double *vals, int *cols, int *rows, int N, double *v, double *w) {
+    for (int i = 0; i < N; i++) {
+        double sum = 0.0;
+        int k;
+        for (k = rows[i]; k < rows[i+1]-5; k+=5) {
+            sum += vals[k] * v[cols[k]];
+            sum += vals[k+1] * v[cols[k+1]];
+            sum += vals[k+2] * v[cols[k+2]];
+            sum += vals[k+3] * v[cols[k+3]];
+            sum += vals[k+4] * v[cols[k+4]];
+        }
+        // Left-over elements
+        for (; k < rows[i+1]; k++) {
+            sum += vals[k] * v[cols[k]];
+        }
+        w[i] += sum;
+    }
+}
+
+// Unrolling inner loop for 8 times
+void spMV_CSR8(double *vals, int *cols, int *rows, int N, double *v, double *w) {
+    for (int i = 0; i < N; i++) {
+        double sum = 0.0;
+        int k;
+        for (k = rows[i]; k < rows[i+1]-8; k+=8) {
+            sum += vals[k] * v[cols[k]];
+            sum += vals[k+1] * v[cols[k+1]];
+            sum += vals[k+2] * v[cols[k+2]];
+            sum += vals[k+3] * v[cols[k+3]];
+            sum += vals[k+4] * v[cols[k+4]];
+            sum += vals[k+5] * v[cols[k+5]];
+            sum += vals[k+6] * v[cols[k+6]];
+            sum += vals[k+7] * v[cols[k+7]];
+        }
+        // Left-over elements
+        for (; k < rows[i+1]; k++) {
+            sum += vals[k] * v[cols[k]];
+        }
+        w[i] += sum;
+    }
+}
+
+// Unrolling inner loop for 10 times
+void spMV_CSR10(double *vals, int *cols, int *rows, int N, double *v, double *w) {
+    for (int i = 0; i < N; i++) {
+        double sum = 0.0;
+        int k;
+        for (k = rows[i]; k < rows[i+1]-10; k+=10) {
+            sum += vals[k] * v[cols[k]];
+            sum += vals[k+1] * v[cols[k+1]];
+            sum += vals[k+2] * v[cols[k+2]];
+            sum += vals[k+3] * v[cols[k+3]];
+            sum += vals[k+4] * v[cols[k+4]];
+            sum += vals[k+5] * v[cols[k+5]];
+            sum += vals[k+6] * v[cols[k+6]];
+            sum += vals[k+7] * v[cols[k+7]];
+            sum += vals[k+8] * v[cols[k+8]];
+            sum += vals[k+9] * v[cols[k+9]];
+        }
+        // Left-over elements
+        for (; k < rows[i+1]; k++) {
+            sum += vals[k] * v[cols[k]];
+        }
+        w[i] += sum;
+    }
+}
+
+// Unrolling inner loop for 12 times
+void spMV_CSR12(double *vals, int *cols, int *rows, int N, double *v, double *w) {
+    for (int i = 0; i < N; i++) {
+        double sum = 0.0;
+        int k;
+        for (k = rows[i]; k < rows[i+1]-12; k+=12) {
+            sum += vals[k] * v[cols[k]];
+            sum += vals[k+1] * v[cols[k+1]];
+            sum += vals[k+2] * v[cols[k+2]];
+            sum += vals[k+3] * v[cols[k+3]];
+            sum += vals[k+4] * v[cols[k+4]];
+            sum += vals[k+5] * v[cols[k+5]];
+            sum += vals[k+6] * v[cols[k+6]];
+            sum += vals[k+7] * v[cols[k+7]];
+            sum += vals[k+8] * v[cols[k+8]];
+            sum += vals[k+9] * v[cols[k+9]];
+            sum += vals[k+10] * v[cols[k+10]];
+            sum += vals[k+11] * v[cols[k+11]];
+        }
+        // Left-over elements
+        for (; k < rows[i+1]; k++) {
+            sum += vals[k] * v[cols[k]];
+        }
+        w[i] += sum;
+    }
+}
+
 // Caller of this method is responsible for destructing the
 // returned matrix. 
 Matrix* readMatrixFromFile(string fileName) {
@@ -85,7 +180,7 @@ Matrix* readMatrixFromFile(string fileName) {
 }
 
 int main(int argc, const char *argv[]) {
-  if (argc != 2) {
+  if (argc != 3) {
     std::cout << "Usage: spMV <matrixName>\n";
     exit(1);
   }
@@ -93,6 +188,7 @@ int main(int argc, const char *argv[]) {
   string matrixName(argv[1]);
   Matrix *csrMatrix = readMatrixFromFile(matrixName + ".mtx");
 
+  int chosenMethod = atoi(argv[2]);
   unsigned long N = csrMatrix->n;
   unsigned long NZ = csrMatrix->nz;
   double *v = new double[N];
@@ -126,17 +222,72 @@ int main(int argc, const char *argv[]) {
   }
 
   auto startTime = std::chrono::high_resolution_clock::now();
-  for (int i=0; i < ITERS; i++) {
-    spMV_CSR4(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
-  }
-  auto endTime = std::chrono::high_resolution_clock::now();
-
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-  auto runtime = (duration / (double)ITERS);
-
-  std::cout << "Runtime (usecs): " << runtime << "\n";
-
-    
+    if(chosenMethod == 0) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
+    else if(chosenMethod == 4) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR4(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
+    else if(chosenMethod == 5) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR5(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
+    else if(chosenMethod == 8) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR8(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
+    else if(chosenMethod == 10) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR10(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
+    else if(chosenMethod == 12) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR12(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
   // For debugging purposes:
   //for(int i = 0; i < N; ++i) w[i] = 0;
   //spMV_CSR4(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
