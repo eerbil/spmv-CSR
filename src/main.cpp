@@ -57,6 +57,27 @@ void spMV_CSR5(double *vals, int *cols, int *rows, int N, double *v, double *w) 
     }
 }
 
+// Unrolling inner loop for 6 times
+void spMV_CSR6(double *vals, int *cols, int *rows, int N, double *v, double *w) {
+    for (int i = 0; i < N; i++) {
+        double sum = 0.0;
+        int k;
+        for (k = rows[i]; k < rows[i+1]-6; k+=6) {
+            sum += vals[k] * v[cols[k]];
+            sum += vals[k+1] * v[cols[k+1]];
+            sum += vals[k+2] * v[cols[k+2]];
+            sum += vals[k+3] * v[cols[k+3]];
+            sum += vals[k+4] * v[cols[k+4]];
+            sum += vals[k+5] * v[cols[k+5]];
+        }
+        // Left-over elements
+        for (; k < rows[i+1]; k++) {
+            sum += vals[k] * v[cols[k]];
+        }
+        w[i] += sum;
+    }
+}
+
 // Unrolling inner loop for 8 times
 void spMV_CSR8(double *vals, int *cols, int *rows, int N, double *v, double *w) {
     for (int i = 0; i < N; i++) {
@@ -255,6 +276,17 @@ int main(int argc, const char *argv[]) {
         //  std::cout << "Runtime (usecs): " << runtime << "\n";
         std::cout << runtime << "\n";
     }
+    else if(chosenMethod == 6) {
+        for (int i=0; i < ITERS; i++)
+        {
+            spMV_CSR6(csrMatrix->vals, csrMatrix->cols, csrMatrix->rows, csrMatrix->n, v, w);
+        }
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        auto runtime = (duration / (double)ITERS);
+        //  std::cout << "Runtime (usecs): " << runtime << "\n";
+        std::cout << runtime << "\n";
+    }
     else if(chosenMethod == 8) {
         for (int i=0; i < ITERS; i++)
         {
@@ -287,6 +319,9 @@ int main(int argc, const char *argv[]) {
         auto runtime = (duration / (double)ITERS);
         //  std::cout << "Runtime (usecs): " << runtime << "\n";
         std::cout << runtime << "\n";
+    } else {
+        std::cout << "Method not found" << "\n";
+        exit(1);
     }
   // For debugging purposes:
   //for(int i = 0; i < N; ++i) w[i] = 0;

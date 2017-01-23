@@ -2,7 +2,7 @@ import os
 import subprocess
 import csv
 
-methods = [0, 4, 5, 8, 10, 12]
+methods = [0, 4, 5, 6, 8, 10, 12]
 
 matrices = os.listdir("matrices_gpce")
 print("Matrix List: ")
@@ -15,7 +15,7 @@ for matrix in matrices:
 print(matrices)
 print(count)
 
-for k in range(0, 6):
+for k in range(0, 7):
     finalList = []
     for i in range(0, count):
         print("Running: " + matrices[i] + " with csr unrolled " + str(methods[k]) + " times")
